@@ -1,5 +1,13 @@
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "misc-no-recursion"
+
+/* Syntax:
+ *      Expression: T {+/- T}
+ *      Term: F * T | F / T | F
+ *      Factor: Identifier | Integer | (E) | -F
+ */
+
 #include <iostream>
-#include <regex>
 
 class TreeNode {
 public:
@@ -16,7 +24,11 @@ public:
         return left->eval() + right->eval();
     }
     void print() const override {
-        std::cout << "(" << left->eval() << "+" << right->eval() << ")";
+        std::cout << "(";
+        left->print();
+        std::cout << "+";
+        right->print();
+        std::cout << ")";
     }
 };
 
@@ -29,7 +41,11 @@ public:
         return left->eval() - right->eval();
     }
     void print() const override {
-        std::cout << "(" << left->eval() << "-" << right->eval() << ")";
+        std::cout << "(";
+        left->print();
+        std::cout << "-";
+        right->print();
+        std::cout << ")";
     }
 };
 
@@ -42,7 +58,11 @@ public:
         return left->eval() * right->eval();
     }
     void print() const override {
-        std::cout << "(" << left->eval() << "*" << right->eval() << ")";
+        std::cout << "(";
+        left->print();
+        std::cout << "*";
+        right->print();
+        std::cout << ")";
     }
 };
 
@@ -55,7 +75,11 @@ public:
         return left->eval() / right->eval();
     }
     void print() const override {
-        std::cout << "(" << left->eval() << "/" << right->eval() << ")";
+        std::cout << "(";
+        left->print();
+        std::cout << "/";
+        right->print();
+        std::cout << ")";
     }
 };
 
@@ -67,7 +91,9 @@ public:
         return -arg->eval();
     }
     void print() const override {
-        std::cout << "(-" << arg->eval() << ")";
+        std::cout << "(-";
+        arg->print();
+        std::cout << ")";
     }
 };
 
@@ -83,11 +109,6 @@ public:
     }
 };
 
-class LeftParenthesis : public TreeNode {
-public:
-
-};
-
 class Identifier : public TreeNode {
 public:
     const char* str;
@@ -101,17 +122,29 @@ public:
     }
 };
 
+#define MAX_SIZE 30
+
 char nextToken;
 TreeNode* resultTree;
 char* input;
+char nextIdentifier[MAX_SIZE];
+char nextInteger[MAX_SIZE];
 
 void scanToken() {
     nextToken = *input;
+    // std::cout << nextToken << "\n";
     // if next character is a digit
     if (nextToken <= '9' && nextToken >= '0') {
+        int i = 0;
         while (*input <= '9' && *input >= '0') { // stop on encountering a non-digit
+            if (i == MAX_SIZE - 1) {
+                std::cout << "Identifier is too long.\n";
+                exit(-1);
+            }
+            nextInteger[i++] = *input;
             input++;
         }
+        nextInteger[i] = '\0';
         return;
     }
     // if next character is +, -, *, /, ( or )
@@ -120,13 +153,91 @@ void scanToken() {
         input++;
         return;
     }
-    // otherwise, the next character is part of an identifier (a string starting with a letter, consisting of letters and digits)
+    // otherwise, the next character is part of an Identifier (a string starting with a letter, consisting of letters and digits)
+    int i = 0;
     do {
+        if (i == MAX_SIZE - 1) {
+            std::cout << "Identifier is too long.\n";
+            exit(-1);
+        }
+        nextIdentifier[i++] = *input;
         input++;
     } while ((*input >= '0' && *input <= '9') || // stop on encountering a non-digit and non-letter
              (*input >= 'a' && *input <= 'z' || *input >= 'A' && *input <= 'Z'));
-    return;
+    nextIdentifier[i] = '\0';
 }
+
+TreeNode* parseExp();
+TreeNode* parseTerm();
+TreeNode* parseFactor();
+
+
+TreeNode* parseExp() {
+    TreeNode* a = parseTerm();
+    while (true) {
+        if (nextToken == '+') {
+            scanToken();
+            TreeNode* b = parseTerm();
+            a = new Add(a, b);
+        } else if (nextToken == '-') {
+            scanToken();
+            TreeNode* b = parseTerm();
+            a = new Sub(a, b);
+        } else {
+            return a;
+        }
+    }
+}
+
+TreeNode* parseTerm() {
+    TreeNode* a = parseFactor(); // scan a factor
+    if (nextToken == '*') { // if nextToken is a '*' -> term: F * T
+        scanToken();
+        TreeNode* b = parseTerm();
+        return new Mul(a, b);
+    } else if (nextToken == '/') { // if nextToken is a '/' -> term: F / T
+        scanToken();
+        TreeNode* b = parseTerm();
+        return new Div(a, b);
+    } else { // otherwise -> term: F
+        return a;
+    }
+}
+
+TreeNode* parseFactor() {
+    // if nextToken is an Identifier -> factor: Identifier
+    if (nextToken >= 'a' && nextToken <= 'z' || nextToken >= 'A' && nextToken <= 'Z') {
+        scanToken();
+        return new Identifier(nextIdentifier, 0);
+    }
+    // if nextToken is an Integer -> factor: Integer
+    if (nextToken >= '0' && nextToken <= '9') {
+        scanToken();
+        return new Integer(atoi(nextInteger));
+    }
+    // if nextToken is a left parenthesis -> factor: (E)
+    if (nextToken == '(') {
+        scanToken();
+        TreeNode* a = parseExp();
+        if (a == nullptr) {
+            return nullptr; // report error if no expression found
+        }
+        if (nextToken == ')') {
+            scanToken();
+            return a;
+        } else {
+            return nullptr; // report error if no right parenthesis found
+        }
+    }
+    // if nextToken is a minus sign -> factor: -F
+    if (nextToken == '-') {
+        scanToken();
+        return new Negate(parseFactor());
+    }
+    return nullptr;
+}
+
+
 
 int main(int argc, char** argv) {
     if (argc != 2) {
@@ -134,8 +245,16 @@ int main(int argc, char** argv) {
         return -1;
     }
     input = argv[1];
-    do {
-        scanToken();
-        std::cout << nextToken << " ";
-    } while (nextToken != '\0');
+
+    scanToken();
+    resultTree = parseExp();
+    if (nextToken != '\0') {
+        std::cout << "Invalid input.\n";
+        return -1;
+    }
+
+    resultTree->print();
+    std::cout << " = " << resultTree->eval() << "\n";
 }
+
+#pragma clang diagnostic pop
