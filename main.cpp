@@ -2,8 +2,8 @@
 #pragma ide diagnostic ignored "misc-no-recursion"
 
 /* Syntax:
- *      Expression: T {+/- T}
- *      Term: F * T | F / T | F
+ *      Expression: T {+ / - T}
+ *      Term: F {* / / F}
  *      Factor: Identifier | Integer | (E) | -F
  */
 
@@ -174,14 +174,23 @@ TreeNode* parseFactor();
 
 TreeNode* parseExp() {
     TreeNode* a = parseTerm();
+    if (a == nullptr) {
+        return nullptr; // report error if parseTerm() fails
+    }
     while (true) {
         if (nextToken == '+') {
             scanToken();
             TreeNode* b = parseTerm();
+            if (b == nullptr) {
+                return nullptr; // report error if parseTerm() fails
+            }
             a = new Add(a, b);
         } else if (nextToken == '-') {
             scanToken();
             TreeNode* b = parseTerm();
+            if (b == nullptr) {
+                return nullptr; // report error if parseTerm() fails
+            }
             a = new Sub(a, b);
         } else {
             return a;
@@ -191,17 +200,29 @@ TreeNode* parseExp() {
 
 TreeNode* parseTerm() {
     TreeNode* a = parseFactor(); // scan a factor
-    if (nextToken == '*') { // if nextToken is a '*' -> term: F * T
-        scanToken();
-        TreeNode* b = parseTerm();
-        return new Mul(a, b);
-    } else if (nextToken == '/') { // if nextToken is a '/' -> term: F / T
-        scanToken();
-        TreeNode* b = parseTerm();
-        return new Div(a, b);
-    } else { // otherwise -> term: F
-        return a;
+    if (a == nullptr) {
+        return nullptr; // report error if parseFactor() fails
     }
+    while (true) {
+        if (nextToken == '*') { // if nextToken is a '*' -> term: F * T
+            scanToken();
+            TreeNode* b = parseFactor();
+            if (b == nullptr) {
+                return nullptr; // report error if parseTerm() fails
+            }
+            a = new Mul(a, b);
+        } else if (nextToken == '/') { // if nextToken is a '/' -> term: F / T
+            scanToken();
+            TreeNode* b = parseFactor();
+            if (b == nullptr) {
+                return nullptr; // report error if parseTerm() fails
+            }
+            a = new Div(a, b);
+        } else { // otherwise -> term: F
+            return a;
+        }
+    }
+
 }
 
 TreeNode* parseFactor() {
@@ -234,6 +255,7 @@ TreeNode* parseFactor() {
         scanToken();
         return new Negate(parseFactor());
     }
+    // report error if nextToken is anything else (+ | * | / etc.)
     return nullptr;
 }
 
@@ -248,7 +270,7 @@ int main(int argc, char** argv) {
 
     scanToken();
     resultTree = parseExp();
-    if (nextToken != '\0') {
+    if (resultTree == nullptr || nextToken != '\0') {
         std::cout << "Invalid input.\n";
         return -1;
     }
