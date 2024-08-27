@@ -19,15 +19,20 @@ public:
     virtual ~TreeNode() = default;
 };
 
-class Add : public TreeNode {
+class InfixOp : public TreeNode {
 public:
     TreeNode* left;
     TreeNode* right;
-    Add(TreeNode* l, TreeNode* r) : TreeNode(), left(l), right(r) {};
-    ~Add() override {
+    InfixOp(TreeNode* l, TreeNode* r) : TreeNode(), left(l), right(r) {};
+    ~InfixOp() override {
         delete left;
         delete right;
     }
+};
+
+class Add : public InfixOp {
+public:
+    Add(TreeNode* l, TreeNode* r) : InfixOp(l, r) {};
     [[nodiscard]] double eval() const override {
         return left->eval() + right->eval();
     }
@@ -40,17 +45,11 @@ public:
     }
 };
 
-class Sub : public TreeNode {
+class Sub : public InfixOp {
 public:
-    TreeNode* left;
-    TreeNode* right;
-    Sub(TreeNode* l, TreeNode* r) : TreeNode(), left(l), right(r) {};
+    Sub(TreeNode* l, TreeNode* r) : InfixOp(l, r) {};
     [[nodiscard]] double eval() const override {
         return left->eval() - right->eval();
-    }
-    ~Sub() override {
-        delete left;
-        delete right;
     }
     void print() const override {
         std::cout << "(";
@@ -61,15 +60,9 @@ public:
     }
 };
 
-class Mul : public TreeNode {
+class Mul : public InfixOp {
 public:
-    TreeNode* left;
-    TreeNode* right;
-    Mul(TreeNode* l, TreeNode* r) : TreeNode(), left(l), right(r) {};
-    ~Mul() override {
-        delete left;
-        delete right;
-    }
+    Mul(TreeNode* l, TreeNode* r) : InfixOp(l, r) {};
     [[nodiscard]] double eval() const override {
         return left->eval() * right->eval();
     }
@@ -82,15 +75,9 @@ public:
     }
 };
 
-class Div : public TreeNode {
+class Div : public InfixOp {
 public:
-    TreeNode* left;
-    TreeNode* right;
-    Div(TreeNode* l, TreeNode* r) : TreeNode(), left(l), right(r) {};
-    ~Div() override {
-        delete left;
-        delete right;
-    }
+    Div(TreeNode* l, TreeNode* r) : InfixOp(l, r) {};
     [[nodiscard]] double eval() const override {
         return left->eval() / right->eval();
     }
@@ -103,15 +90,9 @@ public:
     }
 };
 
-class Caret : public TreeNode {
+class Caret : public InfixOp {
 public:
-    TreeNode* left;
-    TreeNode* right;
-    Caret(TreeNode* l, TreeNode* r) : TreeNode(), left(l), right(r) {};
-    ~Caret() override {
-        delete left;
-        delete right;
-    }
+    Caret(TreeNode* l, TreeNode* r) : InfixOp(l, r) {};
     [[nodiscard]] double eval() const override {
         return pow(left->eval(), right->eval());
     }
