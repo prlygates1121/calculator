@@ -16,6 +16,7 @@ class TreeNode {
 public:
     [[nodiscard]] virtual double eval() const = 0;
     virtual void print() const = 0;
+    virtual ~TreeNode() = default;
 };
 
 class Add : public TreeNode {
@@ -23,6 +24,10 @@ public:
     TreeNode* left;
     TreeNode* right;
     Add(TreeNode* l, TreeNode* r) : TreeNode(), left(l), right(r) {};
+    ~Add() override {
+        delete left;
+        delete right;
+    }
     [[nodiscard]] double eval() const override {
         return left->eval() + right->eval();
     }
@@ -43,6 +48,10 @@ public:
     [[nodiscard]] double eval() const override {
         return left->eval() - right->eval();
     }
+    ~Sub() override {
+        delete left;
+        delete right;
+    }
     void print() const override {
         std::cout << "(";
         left->print();
@@ -57,6 +66,10 @@ public:
     TreeNode* left;
     TreeNode* right;
     Mul(TreeNode* l, TreeNode* r) : TreeNode(), left(l), right(r) {};
+    ~Mul() override {
+        delete left;
+        delete right;
+    }
     [[nodiscard]] double eval() const override {
         return left->eval() * right->eval();
     }
@@ -74,6 +87,10 @@ public:
     TreeNode* left;
     TreeNode* right;
     Div(TreeNode* l, TreeNode* r) : TreeNode(), left(l), right(r) {};
+    ~Div() override {
+        delete left;
+        delete right;
+    }
     [[nodiscard]] double eval() const override {
         return left->eval() / right->eval();
     }
@@ -91,6 +108,10 @@ public:
     TreeNode* left;
     TreeNode* right;
     Caret(TreeNode* l, TreeNode* r) : TreeNode(), left(l), right(r) {};
+    ~Caret() override {
+        delete left;
+        delete right;
+    }
     [[nodiscard]] double eval() const override {
         return pow(left->eval(), right->eval());
     }
@@ -107,6 +128,9 @@ class Negate : public TreeNode {
 public:
     TreeNode* arg;
     explicit Negate(TreeNode* a) : TreeNode(), arg(a) {};
+    ~Negate() override {
+        delete arg;
+    }
     [[nodiscard]] double eval() const override {
         return -arg->eval();
     }
@@ -121,6 +145,9 @@ class Factorial : public TreeNode {
 public:
     TreeNode* arg;
     explicit Factorial(TreeNode* a) : TreeNode(), arg(a) {};
+    ~Factorial() override {
+        delete arg;
+    }
     [[nodiscard]] double eval() const override {
         return fact((int)arg->eval());
     }
@@ -381,6 +408,7 @@ int main(int argc, char** argv) {
     std::cout << resultTree->eval() << "\n";
 
     delete[] startInput;
+    delete resultTree;
 }
 
 #pragma clang diagnostic pop
