@@ -9,6 +9,7 @@
  */
 
 #include <iostream>
+#include <cstring>
 #include <cmath>
 
 class TreeNode {
@@ -168,7 +169,7 @@ public:
 
 char nextToken;
 TreeNode* resultTree;
-char* input;
+char* pInput, *startInput;
 char nextIdentifier[MAX_SIZE];
 char nextDouble[MAX_SIZE];
 
@@ -186,17 +187,17 @@ bool isLetter(char in) {
 }
 
 void scanToken() {
-    nextToken = *input;
+    nextToken = *pInput;
     // if next character is a digit
     if (isDigit(nextToken)) {
         int i = 0;
         bool hasDigit = false;
-        while (isDigit(*input) || *input == '.') { // stop on encountering a non-digit
+        while (isDigit(*pInput) || *pInput == '.') { // stop on encountering a non-digit
             if (i == MAX_SIZE - 1) {
                 std::cout << "The number is too long.\n";
                 exit(-1);
             }
-            if (*input == '.') {
+            if (*pInput == '.') {
                 if (hasDigit) {
                     std::cout << "A number is not formatted.";
                     exit(-1);
@@ -204,8 +205,8 @@ void scanToken() {
                     hasDigit = true;
                 }
             }
-            nextDouble[i++] = *input;
-            input++;
+            nextDouble[i++] = *pInput;
+            pInput++;
         }
         nextDouble[i] = '\0';
         return;
@@ -213,7 +214,7 @@ void scanToken() {
     // if next character is +, -, *, /, (, ) or !
     if (nextToken == '+' || nextToken == '-' || nextToken == '*' || nextToken == '/' ||
         nextToken == '(' || nextToken == ')' || nextToken == '!' || nextToken == '^') {
-        input++;
+        pInput++;
         return;
     }
     // otherwise, the next character is part of an Identifier (a string starting with a letter, consisting of letters and digits)
@@ -223,9 +224,9 @@ void scanToken() {
             std::cout << "The identifier is too long.\n";
             exit(-1);
         }
-        nextIdentifier[i++] = *input;
-        input++;
-    } while (isDigit(*input) || isLetter(*input)); // stop on encountering a non-digit and non-letter
+        nextIdentifier[i++] = *pInput;
+        pInput++;
+    } while (isDigit(*pInput) || isLetter(*pInput)); // stop on encountering a non-digit and non-letter
     nextIdentifier[i] = '\0';
 }
 
@@ -352,22 +353,34 @@ TreeNode* parseFactor() {
 }
 
 int main(int argc, char** argv) {
-    if (argc != 2) {
-        std::cout << "Please input exactly one expression.\n";
+    if (argc == 1) {
+        std::cout << "Please pInput an expression.\n";
         return -1;
     }
-    input = argv[1];
+    if (argc == 2) {
+        pInput = argv[1];
+    } else {
+        std::string a;
+        for (int i = 1; i < argc; i++) {
+            a.append(argv[i]);
+        }
+        startInput = new char[a.size() + 1];
+        std::strcpy(startInput, a.c_str());
+        pInput = startInput;
+    }
 
     scanToken();
     resultTree = parseExp();
     if (resultTree == nullptr || nextToken != '\0') {
-        std::cout << "Invalid input.\n";
+        std::cout << "Invalid pInput.\n";
         return -1;
     }
 
     resultTree->print();
     std::cout << " = ";
-    std::cout << resultTree->eval();
+    std::cout << resultTree->eval() << "\n";
+
+    delete[] startInput;
 }
 
 #pragma clang diagnostic pop
