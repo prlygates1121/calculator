@@ -2,9 +2,9 @@
 #pragma ide diagnostic ignored "misc-no-recursion"
 
 /* Syntax:
- *      Expression: T {+ / - T}
- *      Term: F {* / / F}
- *      Factor: Identifier | Double | (E) | -F
+ *      Expression: T {+ | - T}
+ *      Term: F {* | / F}
+ *      Factor: Identifier | Double | (E) | -F | F!
  */
 
 #include <iostream>
@@ -97,10 +97,33 @@ public:
     }
 };
 
+class Factorial : public TreeNode {
+public:
+    TreeNode* arg;
+    explicit Factorial(TreeNode* a) : TreeNode(), arg(a) {};
+    [[nodiscard]] double eval() const override {
+        return fact((int)arg->eval());
+    }
+    void print() const override {
+        std::cout << "(";
+        arg->print();
+        std::cout << "!)";
+    }
+    static double fact(int in, int acc = 1) {
+        if (in == 0) {
+            return acc;
+        }
+        if (in < 0) {
+            return 0./0;
+        }
+        return fact(in - 1, acc * in);
+    }
+};
+
 class Double : public TreeNode {
 public:
     double val;
-    explicit Double(int v) : TreeNode(), val(v) {};
+    explicit Double(double v) : TreeNode(), val(v) {};
     [[nodiscard]] double eval() const override {
         return val;
     }
@@ -147,10 +170,19 @@ void scanToken() {
     // if next character is a digit
     if (isDigit(nextToken)) {
         int i = 0;
+        bool hasDigit = false;
         while (isDigit(*input) || *input == '.') { // stop on encountering a non-digit
             if (i == MAX_SIZE - 1) {
                 std::cout << "The number is too long.\n";
                 exit(-1);
+            }
+            if (*input == '.') {
+                if (hasDigit) {
+                    std::cout << "A number is not formatted.";
+                    exit(-1);
+                } else {
+                    hasDigit = true;
+                }
             }
             nextDouble[i++] = *input;
             input++;
@@ -158,9 +190,9 @@ void scanToken() {
         nextDouble[i] = '\0';
         return;
     }
-    // if next character is +, -, *, /, ( or )
+    // if next character is +, -, *, /, (, ) or !
     if (nextToken == '+' || nextToken == '-' || nextToken == '*' ||
-        nextToken == '/' || nextToken == '(' || nextToken == ')') {
+        nextToken == '/' || nextToken == '(' || nextToken == ')' || nextToken == '!') {
         input++;
         return;
     }
@@ -241,7 +273,15 @@ TreeNode* parseFactor() {
     // if nextToken is an Double -> factor: Double
     if (isDigit(nextToken)) {
         scanToken();
-        return new Double(atof(nextDouble));
+        TreeNode* a = new Double(atof(nextDouble));
+        while (true) {
+            if (nextToken == '!') {
+                scanToken();
+                a = new Factorial(a);
+            } else {
+                return a;
+            }
+        }
     }
     // if nextToken is a left parenthesis -> factor: (E)
     if (nextToken == '(') {
@@ -252,10 +292,16 @@ TreeNode* parseFactor() {
         }
         if (nextToken == ')') {
             scanToken();
-            return a;
-        } else {
-            return nullptr; // report error if no right parenthesis found
+            while (true) {
+                if (nextToken == '!') {
+                    scanToken();
+                    a = new Factorial(a);
+                } else {
+                    return a;
+                }
+            }
         }
+        return nullptr; // report error if no right parenthesis found
     }
     // if nextToken is a minus sign -> factor: -F
     if (nextToken == '-') {
