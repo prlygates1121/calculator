@@ -3,11 +3,13 @@
 
 /* Syntax:
  *      Expression: T {+ | - T}
- *      Term: F {* | / F}
+ *      Term: TV {* | / TV}
+ *      TermVIP: F {^ F}
  *      Factor: Identifier | Double | (E) | -F | F!
  */
 
 #include <iostream>
+#include <cmath>
 
 class TreeNode {
 public:
@@ -83,6 +85,23 @@ public:
     }
 };
 
+class Caret : public TreeNode {
+public:
+    TreeNode* left;
+    TreeNode* right;
+    Caret(TreeNode* l, TreeNode* r) : TreeNode(), left(l), right(r) {};
+    [[nodiscard]] double eval() const override {
+        return pow(left->eval(), right->eval());
+    }
+    void print() const override {
+        std::cout << "(";
+        left->print();
+        std::cout << "^";
+        right->print();
+        std::cout << ")";
+    }
+};
+
 class Negate : public TreeNode {
 public:
     TreeNode* arg;
@@ -109,7 +128,7 @@ public:
         arg->print();
         std::cout << "!)";
     }
-    static double fact(int in, int acc = 1) {
+    [[nodiscard]] double fact(int in, int acc = 1) const {
         if (in == 0) {
             return acc;
         }
@@ -155,6 +174,7 @@ char nextDouble[MAX_SIZE];
 
 TreeNode* parseExp();
 TreeNode* parseTerm();
+TreeNode* parseTermVIP();
 TreeNode* parseFactor();
 
 bool isDigit(char in) {
@@ -191,8 +211,8 @@ void scanToken() {
         return;
     }
     // if next character is +, -, *, /, (, ) or !
-    if (nextToken == '+' || nextToken == '-' || nextToken == '*' ||
-        nextToken == '/' || nextToken == '(' || nextToken == ')' || nextToken == '!') {
+    if (nextToken == '+' || nextToken == '-' || nextToken == '*' || nextToken == '/' ||
+        nextToken == '(' || nextToken == ')' || nextToken == '!' || nextToken == '^') {
         input++;
         return;
     }
@@ -238,21 +258,21 @@ TreeNode* parseExp() {
 }
 
 TreeNode* parseTerm() {
-    TreeNode* a = parseFactor(); // scan a factor
+    TreeNode* a = parseTermVIP(); // scan a factor
     if (a == nullptr) {
         return nullptr; // report error if parseFactor() fails
     }
     while (true) {
         if (nextToken == '*') { // if nextToken is a '*' -> term: F * T
             scanToken();
-            TreeNode* b = parseFactor();
+            TreeNode* b = parseTermVIP();
             if (b == nullptr) {
                 return nullptr; // report error if parseTerm() fails
             }
             a = new Mul(a, b);
         } else if (nextToken == '/') { // if nextToken is a '/' -> term: F / T
             scanToken();
-            TreeNode* b = parseFactor();
+            TreeNode* b = parseTermVIP();
             if (b == nullptr) {
                 return nullptr; // report error if parseTerm() fails
             }
@@ -262,6 +282,25 @@ TreeNode* parseTerm() {
         }
     }
 
+}
+
+TreeNode* parseTermVIP() {
+    TreeNode* a = parseFactor();
+    if (a == nullptr) {
+        return nullptr;
+    }
+    while (true) {
+        if (nextToken == '^') {
+            scanToken();
+            TreeNode* b = parseFactor();
+            if (b == nullptr) {
+                return nullptr;
+            }
+            a = new Caret(a, b);
+        } else {
+            return a;
+        }
+    }
 }
 
 TreeNode* parseFactor() {
